@@ -1,5 +1,5 @@
 ARG UBUNTU_VERSION=22.04
-ARG CUDA_VERSION=11.8.0
+ARG CUDA_VERSION=11.7.1
 
 ARG WEBUI_COMMIT=b17893a58f1b6d11d3c39594608a421bf09928a1
 ARG BNB_COMMIT=18e827d666fa2b70a12d539ccedc17aa51b2c97c
@@ -24,7 +24,7 @@ ENV CUDA_DOCKER_ARCH=all
 # Install torch
 RUN python3 -m pip install --upgrade pip wheel setuptools \
 &&  python3 -m pip install torch torchvision torchaudio \
-	--index-url https://download.pytorch.org/whl/cu118
+	--index-url https://download.pytorch.org/whl/cu117
 
 # Install GPTQ for llama
 
@@ -50,7 +50,7 @@ RUN python3 -m pip uninstall -y llama-cpp-python \
 RUN python3 -m pip uninstall -y bitsandbytes \
 &&  git clone https://github.com/TimDettmers/bitsandbytes.git /build \
 &&  cd /build && git checkout ${BNB_COMMIT} \
-&&  CUDA_VERSION=118 make cuda11x \
+&&  CUDA_VERSION=117 make cuda11x \
 &&  python3 setup.py install \
 &&  rm -rf /build
 
