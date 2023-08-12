@@ -1,15 +1,17 @@
 #!/bin/bash
 
-CLI_ARGS=${CLI_ARGS:-"--help"}
+CLI_ARGS=${CLI_ARGS:-"--chat --listen --api"}
+WEBUI_VERSION=${WEBUI_VERSION:-"b17893a58f1b6d11d3c39594608a421bf09928a1"}  # release 1.15
+
 WORK_DIR=/app
 
-if [ ! -f ${WORK_DIR}/server.py ]; then
-    if [ -f /dist/app.tgz ]; then
-	tar -C /app -xzf /dist/app.tgz
-    else
-	echo "WARN: app dist does not exist!"
-	exit -1
-    fi
-fi
+# goto work dir
+cd ${WORK_DIR}
 
-cd ${WORK_DIR}; exec python3 server.py ${CLI_ARGS}
+# clone the webui repo
+[ ! -f ${WORK_DIR}/server.py ] && git clone https://github.com/oobabooga/text-generation-webui.git .
+
+# checkout the specific commit
+git checkout ${WEBUI_VERSION} || true	# ignore error
+
+exec python3 server.py ${CLI_ARGS}
