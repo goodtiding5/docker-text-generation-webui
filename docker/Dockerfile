@@ -1,6 +1,8 @@
 ARG UBUNTU_VERSION=22.04
 ARG CUDA_VERSION=11.8.0
 
+ARG WEBUI_COMMIT=b17893a58f1b6d11d3c39594608a421bf09928a1
+ARG BNB_COMMIT=18e827d666fa2b70a12d539ccedc17aa51b2c97c
 
 ARG BASE_CUDA_DEV_CONTAINER=nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
@@ -21,7 +23,7 @@ ENV CUDA_DOCKER_ARCH=all
 
 # Install torch
 RUN python3 -m pip install --upgrade pip wheel setuptools \
-&&  python3 -m pip install torch torchvision torchaudio 
+&&  python3 -m pip install torch torchvision torchaudio \
 	--index-url https://download.pytorch.org/whl/cu118
 
 # Install GPTQ for llama
@@ -34,10 +36,9 @@ RUN git clone https://github.com/oobabooga/GPTQ-for-LLaMa /build \
 &&  python3 setup_cuda.py install \
 &&  rm -rf /build
 
-# Install text-generation-webui
-
+# Install text-generation-webui / release 1.15
 RUN git clone https://github.com/oobabooga/text-generation-webui.git /app \
-&&  cd /app \
+&&  cd /app && git checkout ${WEBUI_COMMIT} \
 &&  python3 -m pip install -r requirements.txt \
 &&  for f in ./extensions/*/requirements.txt ; do python3 -m pip install -r $f ; done
 
@@ -48,8 +49,7 @@ RUN python3 -m pip uninstall -y llama-cpp-python \
 # Making latest bitsandbytes with cuda support / v0.41.0
 RUN python3 -m pip uninstall -y bitsandbytes \
 &&  git clone https://github.com/TimDettmers/bitsandbytes.git /build \
-&&  cd /build \
-&&  git checkout 18e827d666fa2b70a12d539ccedc17aa51b2c97c \
+&&  cd /build && git checkout ${BNB_COMMIT} \
 &&  CUDA_VERSION=118 make cuda11x \
 &&  python3 setup.py install \
 &&  rm -rf /build
@@ -80,7 +80,7 @@ ENV CONTAINER_API_STREAM_PORT=5005
 
 # pre-req
 RUN apt-get update \
-&&  DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y python3 tar gzip \
+&&  DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y python3 git \
 &&  apt-get clean \
 &&  rm -rf /var/lib/apt/lists*
 
@@ -88,9 +88,6 @@ RUN apt-get update \
 ENV VIRTUAL_ENV=/opt/venv
 COPY --from=build ${VIRTUAL_ENV} ${VIRTUAL_ENV} 
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-# copy dist from the build
-COPY --from=build /dist /dist
 
 COPY ./run.sh /run.sh
 
@@ -105,6 +102,7 @@ EXPOSE ${CONTAINER_API_PORT}
 EXPOSE ${CONTAINER_API_STREAM_PORT}
 
 ENV CLI_ARGS="--help"
+ENV WEBUI_VERSION=${WEBUI_COMMIT}
 
 CMD /run.sh ${CLI_ARGS}
 
